@@ -99,6 +99,43 @@ The 3D model, the drawing, prices and the quote dataset are confidential. The pr
 - **Machine learning comes after rules.** Business rules come first, because they are explainable and work without data. Learning calibrates their parameters once enough clean quotes exist.
 - **If files become very large,** only the reader module is rewritten (for example in Rust).
 
+## Parts and assemblies (method validated, code removed)
+
+See [METHODS.md](METHODS.md) for the reasoning and limits behind each method.
+
+A STEP file can hold one part with several bodies, or an assembly of several parts.
+
+- **Pieces = leaf products.** Read `PRODUCT`, `PRODUCT_DEFINITION` and `NEXT_ASSEMBLY_USAGE_OCCURRENCE`. A product with no children is a physical piece. Its quantity is the number of occurrences in the assembly, multiplied through the levels.
+- **Bodies are not pieces.** Several solids in one product (for example, SolidWorks feature bodies) belong to the same piece.
+- **Volume per piece:** OpenCASCADE's XCAF document keeps the link between each occurrence, its piece and the piece's geometry. Solids inside a piece are fused before measuring, so overlaps are not counted twice.
+  - Names come from the component labels. Internal references (`=>[0:1:1:3]`) are ignored.
+  - Leaves without solids (wires or reference geometry) are skipped: they have no material.
+  - **One XCAF document per process.** Reading two files in the same Python process crashes OpenCASCADE (access violation). Batch processing must run each file in its own process. `--json` exists for that.
+  - Contacts and overlaps between different pieces are not checked yet.
+- **Rebuilding one piece as its own STEP:** `export_piece()` writes the piece in its own coordinate frame. It does not keep the position it had in the assembly, and the file is rewritten by OpenCASCADE, so original names, colours or annotations may be lost. Checked: an exported box reads back at 6000 mm³.
+
+## Volume and part breakdown (method validated, code removed)
+
+- **Volume is computed by OpenCASCADE** (via cadquery). Surfaces such as B-splines, tori and cones have no simple closed-form volume, so a home-made calculation would be a large project of its own. The reader keeps the data; the kernel does the maths. This can be revisited later.
+- **Solids can overlap.** The sum of solid volumes counts overlapping zones twice. The **material volume** is therefore the volume of the fused solids. Both values are reported.
+- **Breakdown per solid:** volume, area, bounding box, face count per geometric type, and cylinder radii.
+- **Identical solids** (same volume and bounding box) are probably copies of the same part, which matters for quantity and cost.
+
+### How the manufacturing method is inferred: face signals
+
+Face types are the first clue to how a part is made. These are signals, not proof: the rules in `infer_process()` must weigh them.
+
+| Face type (OpenCASCADE) | Typical meaning | Manufacturing hint |
+|-------------------------|-----------------|--------------------|
+| `PLANE` | Flat face | Milling, sheet metal, sawing |
+| `CYLINDER` | Hole or boss, with a radius | Drilling, boring, turning; the radius gives the hole size |
+| `TORUS` | Fillet or round | Milling with a ball or radius cutter, or moulding |
+| `CONE` | Chamfer, countersink, drill point | Chamfering, drilling |
+| `SPHERE` | Ball end, spherical surface | Turning, or free-form machining |
+| `BSPLINE` | Free-form surface | 5-axis machining, casting, forging, additive, or CNC milling with a lot of time |
+
+A cylinder can be a hole (material inside) or a boss (material outside). Telling them apart needs the face orientation, which is a planned next step.
+
 ## Testing strategy (planned)
 
 - **Round trip:** reading then writing back an entity must reproduce its text.

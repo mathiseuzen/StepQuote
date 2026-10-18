@@ -67,5 +67,6 @@ The 3D model, the drawing, the prices and the quote dataset are confidential. Th
 - [Idea and scope](docs/IDEA.md)
 - [STEP format notes](docs/STEP_FORMAT.md)
 - [Architecture and functions](docs/ARCHITECTURE.md)
+- [Methods: what we can extract from STEP, and why](docs/METHODS.md)
 - [Redaction of text sent outside](docs/REDACTION.md)
 - [Roadmap](docs/ROADMAP.md)

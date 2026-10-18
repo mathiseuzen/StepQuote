@@ -40,7 +40,8 @@
 
 ## Phase 3: calculations
 
-- [ ] Volume of a solid (validated on a reference box)
+- [x] Volume per solid, and material volume after fusing overlapping solids (OpenCASCADE, validated on a 10 × 20 × 30 box and a drilled box)
+- [ ] Hole vs boss detection from face orientation
 - [ ] Surface area
 - [ ] Centre of gravity
 - [ ] Mass from a density
